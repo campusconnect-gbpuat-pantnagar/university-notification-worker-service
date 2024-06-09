@@ -10,6 +10,7 @@ import * as path from 'path';
 import { JobService } from '../job/job.service';
 import { JobModule } from '../job/job.module';
 import { UserModule } from '../user/user.module';
+import { UniversityBulkNotificationProcessor } from './processors/university-bulk.notification.processor';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -68,6 +69,10 @@ import { UserModule } from '../user/user.module';
     }),
   ],
   controllers: [],
-  providers: [UniversityNotificationProcessor, JobService],
+  providers: [
+    UniversityNotificationProcessor,
+    UniversityBulkNotificationProcessor,
+    JobService,
+  ],
 })
 export class WorkerModule {}

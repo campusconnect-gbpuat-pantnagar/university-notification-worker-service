@@ -1,11 +1,17 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JobCreatedJob, QueueEventJobPattern } from 'src/libraries/queues/jobs';
-import { Job } from 'bullmq';
+import {
+  JobCreatedEmailJob,
+  JobCreatedJob,
+  JobPriority,
+  QueueEventJobPattern,
+} from 'src/libraries/queues/jobs';
+import { Job, Queue } from 'bullmq';
 import { EmailQueues } from 'src/libraries/queues/queue.constants';
 import { JobService } from 'src/app/job/job.service';
 import { UserService } from 'src/app/user/user.service';
+import { InjectUniversityBulkNotificationQueue } from 'src/libraries/queues/decorators/inject-queue.decorator';
 
 @Processor(EmailQueues.UNIVERSITY_NOTIFICATION, {
   concurrency: 100,
@@ -17,6 +23,8 @@ export class UniversityNotificationProcessor extends WorkerHost {
     private _configService: ConfigService,
     private _jobService: JobService,
     private _userService: UserService,
+    @InjectUniversityBulkNotificationQueue()
+    private _universityBulkNotificationQueue: Queue,
   ) {
     super();
   }
@@ -46,10 +54,30 @@ export class UniversityNotificationProcessor extends WorkerHost {
     try {
       const newCreatedJob = await this._jobService.findJobById(jobId);
       this.logger.debug(newCreatedJob);
-      // const userLists = await this._userService.findTargetUserForJob(
-      //   newCreatedJob.collegeId,
-      //   newCreatedJob.batchYear,
-      // );
+      const userLists = await this._userService.findTargetUserForJob(
+        newCreatedJob.collegeId,
+        newCreatedJob.batchYear,
+      );
+      for (const user of userLists) {
+        const eventData: JobCreatedEmailJob['data'] = {
+          email: user.gbpuatEmail,
+          firstName: user.firstName,
+          workTitle: newCreatedJob.workTitle,
+          jobLink: newCreatedJob.link,
+          eligibility: newCreatedJob.eligibility,
+          companyName: newCreatedJob.company,
+          workLocation: newCreatedJob.workLocation,
+          lastDate: newCreatedJob.applyBy,
+          salary: newCreatedJob.salary,
+          skillsRequired: newCreatedJob.skillsReq,
+        };
+
+        await this._universityBulkNotificationQueue.add(
+          QueueEventJobPattern.JOB_CREATED_EMAIL_TO_USER,
+          { ...eventData },
+          { priority: JobPriority.HIGHEST },
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Error checking post content for job ${job.id}: ${error.message}`,
