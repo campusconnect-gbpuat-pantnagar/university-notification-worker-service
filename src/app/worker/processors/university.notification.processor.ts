@@ -5,6 +5,7 @@ import { JobCreatedJob, QueueEventJobPattern } from 'src/libraries/queues/jobs';
 import { Job } from 'bullmq';
 import { EmailQueues } from 'src/libraries/queues/queue.constants';
 import { JobService } from 'src/app/job/job.service';
+import { UserService } from 'src/app/user/user.service';
 
 @Processor(EmailQueues.UNIVERSITY_NOTIFICATION, {
   concurrency: 100,
@@ -15,6 +16,7 @@ export class UniversityNotificationProcessor extends WorkerHost {
   constructor(
     private _configService: ConfigService,
     private _jobService: JobService,
+    private _userService: UserService,
   ) {
     super();
   }
@@ -44,6 +46,10 @@ export class UniversityNotificationProcessor extends WorkerHost {
     try {
       const newCreatedJob = await this._jobService.findJobById(jobId);
       this.logger.debug(newCreatedJob);
+      // const userLists = await this._userService.findTargetUserForJob(
+      //   newCreatedJob.collegeId,
+      //   newCreatedJob.batchYear,
+      // );
     } catch (error) {
       this.logger.error(
         `Error checking post content for job ${job.id}: ${error.message}`,

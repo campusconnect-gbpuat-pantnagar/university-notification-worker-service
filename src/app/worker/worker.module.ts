@@ -9,12 +9,14 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import * as path from 'path';
 import { JobService } from '../job/job.service';
 import { JobModule } from '../job/job.module';
+import { UserModule } from '../user/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
     JobModule,
+    UserModule,
     MailerModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         transport: {

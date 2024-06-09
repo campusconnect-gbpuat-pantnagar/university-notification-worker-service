@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthCheckController } from './healthcheck/healthcheck.controller';
-import { DalService } from 'src/libraries/dal/dal.service';
 import { WorkerModule } from './worker/worker.module';
 import { JobModule } from './job/job.module';
+import { UserModule } from './user/user.module';
 
 // const jobDbService = {
 //   provide: 'JobDBService',
@@ -14,16 +14,15 @@ import { JobModule } from './job/job.module';
 //   },
 // };
 
-const userDbService = {
-  provide: 'UserDBService',
-  useFactory: async () => {
-    const service = new DalService();
-    await service.connect(process.env.USER_DB_URI, {}, 'userDB');
-    return service;
-  },
-};
+// const userDbService = {
+//   provide: 'UserDBService',
+//   useFactory: async () => {
+//     const service = new DalService();
+//     await service.connect(process.env.USER_DB_URI, {}, 'userDB');
+//     return service;
+//   },
+// };
 
-const PROVIDERS = [userDbService];
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,8 +30,9 @@ const PROVIDERS = [userDbService];
     }),
     WorkerModule,
     JobModule,
+    UserModule,
   ],
   controllers: [HealthCheckController],
-  providers: [...PROVIDERS],
+  providers: [],
 })
 export class AppModule {}
