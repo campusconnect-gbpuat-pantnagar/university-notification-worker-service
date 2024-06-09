@@ -8,6 +8,7 @@ import {
 } from 'src/libraries/queues/jobs';
 import { Job } from 'bullmq';
 import { EmailQueues } from 'src/libraries/queues/queue.constants';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Processor(EmailQueues.UNIVERSITY_NOTIFICATION_BULK, {
   concurrency: 100,
@@ -17,7 +18,10 @@ export class UniversityBulkNotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(
     UniversityBulkNotificationProcessor.name,
   );
-  constructor(private _configService: ConfigService) {
+  constructor(
+    private _configService: ConfigService,
+    private _mailService: MailerService,
+  ) {
     super();
   }
   async process(
@@ -41,10 +45,38 @@ export class UniversityBulkNotificationProcessor extends WorkerHost {
   }
 
   async sendJobCreatedEmail(job: Job<JobCreatedEmailJob['data']>) {
-    const { email, jobLink } = job.data;
+    const {
+      email,
+      jobLink,
+      firstName,
+      companyName,
+      workLocation,
+      workTitle,
+      lastDate,
+      salary,
+      eligibility,
+      skillsRequired,
+    } = job.data;
     this.logger.debug('university bulk email data:', job.data);
     try {
-      // send mail to user
+      const context = {
+        firstName,
+        companyName,
+        workTitle,
+        eligibility,
+        lastDate,
+        skillsRequired,
+        salary,
+        workLocation,
+        jobLink,
+      };
+      await this._mailService.sendMail({
+        to: email,
+        from: `CampusConnect ${this._configService.get<string>('SMTP_SERVICE_EMAIL')}`,
+        subject: `New Job Alert 🌟 Apply Before It's Gone!`,
+        template: 'job/job.ejs',
+        context,
+      });
     } catch (error) {
       this.logger.error(
         `Error checking post content for job ${job.id}: ${error.message}`,
